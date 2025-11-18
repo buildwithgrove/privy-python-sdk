@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union, Optional
+from typing import Any, List, Union, Optional
 
 import httpx
 
@@ -6,6 +6,7 @@ from typing_extensions import Literal
 
 from .hpke import open, generate_keypair, seal
 from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven
+from .._models import BaseModel
 from ..types.wallet import Wallet
 from ..resources.wallets import (
     WalletsResource as BaseWalletsResource,
@@ -32,21 +33,18 @@ class DecryptedWalletAuthenticateWithJwtResponse:
         self.wallets = wallets
 
 
-class WalletImportInitResponse:
+class WalletImportInitResponse(BaseModel):
     """Response from wallet import initialization containing the encryption public key.
 
     This response contains the encryption public key that should be used to encrypt
     the wallet's private key before submitting the import.
     """
 
-    def __init__(
-        self,
-        *,
-        encryption_type: str,
-        encryption_public_key: str,
-    ):
-        self.encryption_type = encryption_type
-        self.encryption_public_key = encryption_public_key
+    encryption_type: str
+    """The encryption type (currently only HPKE is supported)."""
+
+    encryption_public_key: str
+    """Base64-encoded encryption public key to encrypt the wallet entropy with."""
 
 
 class WalletsResource(BaseWalletsResource):
@@ -129,7 +127,7 @@ class WalletsResource(BaseWalletsResource):
         Returns:
             WalletImportInitResponse containing the encryption public key
         """
-        response = self._post(
+        return self._post(
             "/v1/wallets/import/init",
             body={
                 "address": address,
@@ -143,11 +141,7 @@ class WalletsResource(BaseWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
-            cast_to=Dict[str, Any],
-        )
-        return WalletImportInitResponse(
-            encryption_type=response["encryption_type"],
-            encryption_public_key=response["encryption_public_key"],
+            cast_to=WalletImportInitResponse,
         )
 
     def import_wallet_submit(
@@ -378,7 +372,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
         Returns:
             WalletImportInitResponse containing the encryption public key
         """
-        response = await self._post(
+        return await self._post(
             "/v1/wallets/import/init",
             body={
                 "address": address,
@@ -392,11 +386,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
-            cast_to=Dict[str, Any],
-        )
-        return WalletImportInitResponse(
-            encryption_type=response["encryption_type"],
-            encryption_public_key=response["encryption_public_key"],
+            cast_to=WalletImportInitResponse,
         )
 
     async def import_wallet_submit(
