@@ -34,7 +34,7 @@ dependencies = [
     "pyjwt>=2.10.1",
     "sniffio",
     "typing-extensions>=4.10,<5",
-    "web3>=7.11.0",
+    "web3>=7.6.0",
 ]
 
 [project.urls]
