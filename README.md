@@ -49,6 +49,10 @@ user = client.users.get(user_id="did:privy:...")
 privy/
 ├── __init__.py          # Main package exports
 ├── _client.py           # Client implementation
+├── lib/                 # Internal library utilities
+│   ├── users.py         # User encryption/decryption utilities
+│   ├── wallets.py       # Wallet provider utilities
+│   └── http_client.py   # Custom HTTP client
 ├── types/               # Type definitions (properly namespaced as privy.types)
 ├── resources/           # API resources
 └── _utils/              # Utility functions
