@@ -129,7 +129,7 @@ class WalletsResource(BaseWalletsResource):
         Returns:
             WalletImportInitResponse containing the encryption public key
         """
-        response = self._client.post(
+        response = self._post(
             "/v1/wallets/import/init",
             body={
                 "address": address,
@@ -143,11 +143,11 @@ class WalletsResource(BaseWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
+            cast_to=dict,
         )
-        data = response.json()
         return WalletImportInitResponse(
-            encryption_type=data["encryption_type"],
-            encryption_public_key=data["encryption_public_key"],
+            encryption_type=response["encryption_type"],
+            encryption_public_key=response["encryption_public_key"],
         )
 
     def import_wallet_submit(
@@ -207,7 +207,7 @@ class WalletsResource(BaseWalletsResource):
         if additional_signers is not None:
             body["additional_signers"] = additional_signers
 
-        response = self._client.post(
+        return self._post(
             "/v1/wallets/import/submit",
             body=body,
             options={
@@ -216,9 +216,8 @@ class WalletsResource(BaseWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
+            cast_to=Wallet,
         )
-        data = response.json()
-        return Wallet(**data)
 
     def import_wallet(
         self,
@@ -379,7 +378,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
         Returns:
             WalletImportInitResponse containing the encryption public key
         """
-        response = await self._client.post(
+        response = await self._post(
             "/v1/wallets/import/init",
             body={
                 "address": address,
@@ -393,11 +392,11 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
+            cast_to=dict,
         )
-        data = response.json()
         return WalletImportInitResponse(
-            encryption_type=data["encryption_type"],
-            encryption_public_key=data["encryption_public_key"],
+            encryption_type=response["encryption_type"],
+            encryption_public_key=response["encryption_public_key"],
         )
 
     async def import_wallet_submit(
@@ -457,7 +456,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
         if additional_signers is not None:
             body["additional_signers"] = additional_signers
 
-        response = await self._client.post(
+        return await self._post(
             "/v1/wallets/import/submit",
             body=body,
             options={
@@ -466,9 +465,8 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
+            cast_to=Wallet,
         )
-        data = response.json()
-        return Wallet(**data)
 
     async def import_wallet(
         self,
