@@ -34,7 +34,7 @@ dependencies = [
     "pyjwt>=2.10.1",
     "sniffio",
     "typing-extensions>=4.10,<5",
-    "web3>=7.11.0",
+    "web3>=7.6.0",
 ]
 
 [project.urls]
@@ -44,36 +44,4 @@ Repository = "https://github.com/buildwithgrove/privy-python-sdk"
 Issues = "https://github.com/buildwithgrove/privy-python-sdk/issues"
 
 [tool.hatch.build.targets.wheel]
-packages = ["."]
-exclude = [
-    ".git",
-    ".gitignore",
-    ".claude",
-    "lib",
-    "*.swp",
-    "*.pyc",
-    "__pycache__",
-    "dist",
-    "*.egg-info",
-    "pyproject.toml",
-    "README.md",
-]
-
-[tool.hatch.build.targets.sdist]
-include = [
-    "*.py",
-    "resources/**/*.py",
-    "types/**/*.py",
-    "_utils/**/*.py",
-    "py.typed",
-    "README.md",
-]
-exclude = [
-    ".git",
-    ".claude",
-    "lib",
-    "*.swp",
-    "*.pyc",
-    "__pycache__",
-    "dist",
-]
+packages = ["privy"]
