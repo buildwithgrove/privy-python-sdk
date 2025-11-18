@@ -1,6 +1,6 @@
 # Privy Python SDK
 
-Python SDK for the Privy API - extracted from the official `privy-client` package.
+Python SDK for the Privy API - extracted from the official `privy-client` package and properly packaged to avoid namespace conflicts.
 
 ## Installation
 
@@ -31,10 +31,28 @@ client = PrivyAPI(
 user = client.users.get(user_id="did:privy:...")
 ```
 
+## Key Features
+
+- **Proper namespace packaging**: No conflicts with Python's built-in `types` module
+- **Drop-in replacement**: Same import structure as official package
+- **Type-safe**: Includes `py.typed` marker for type checking support
+- **Complete API coverage**: All resources, types, and utilities included
+
 ## Requirements
 
 - Python >=3.8
-- See `pyproject.toml` for complete dependency list
+- Dependencies: anyio, cryptography, distro, httpx, pydantic, pyhpke, pyjwt, sniffio, typing-extensions, web3
+
+## Package Structure
+
+```
+privy/
+├── __init__.py          # Main package exports
+├── _client.py           # Client implementation
+├── types/               # Type definitions (properly namespaced as privy.types)
+├── resources/           # API resources
+└── _utils/              # Utility functions
+```
 
 ## Documentation
 
