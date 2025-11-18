@@ -1,0 +1,79 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "privy-client"
+version = "0.2.0"
+description = "Python SDK for Privy API"
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "MIT"}
+authors = [
+    {name = "Privy", email = "support@privy.io"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Typing :: Typed",
+]
+dependencies = [
+    "anyio>=3.5.0,<5",
+    "cryptography>=44.0.3",
+    "distro>=1.7.0,<2",
+    "httpx>=0.23.0,<1",
+    "pydantic>=1.9.0,<3",
+    "pyhpke>=0.6.2",
+    "pyjwt>=2.10.1",
+    "sniffio",
+    "typing-extensions>=4.10,<5",
+    "web3>=7.11.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/buildwithgrove/privy-python-sdk"
+Documentation = "https://docs.privy.io"
+Repository = "https://github.com/buildwithgrove/privy-python-sdk"
+Issues = "https://github.com/buildwithgrove/privy-python-sdk/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]
+exclude = [
+    ".git",
+    ".gitignore",
+    ".claude",
+    "lib",
+    "*.swp",
+    "*.pyc",
+    "__pycache__",
+    "dist",
+    "*.egg-info",
+    "pyproject.toml",
+    "README.md",
+]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "*.py",
+    "resources/**/*.py",
+    "types/**/*.py",
+    "_utils/**/*.py",
+    "py.typed",
+    "README.md",
+]
+exclude = [
+    ".git",
+    ".claude",
+    "lib",
+    "*.swp",
+    "*.pyc",
+    "__pycache__",
+    "dist",
+]
