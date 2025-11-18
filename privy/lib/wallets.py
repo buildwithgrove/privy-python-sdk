@@ -1,4 +1,4 @@
-from typing import Any, List, Union, Optional
+from typing import Any, Dict, List, Union, Optional
 
 import httpx
 
@@ -143,7 +143,7 @@ class WalletsResource(BaseWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
-            cast_to=dict,
+            cast_to=Dict[str, Any],
         )
         return WalletImportInitResponse(
             encryption_type=response["encryption_type"],
@@ -392,7 +392,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
                 "extra_body": extra_body or {},
                 "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
             },
-            cast_to=dict,
+            cast_to=Dict[str, Any],
         )
         return WalletImportInitResponse(
             encryption_type=response["encryption_type"],
