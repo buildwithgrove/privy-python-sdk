@@ -2,8 +2,11 @@ from typing import Any, List, Union, Optional
 
 import httpx
 
-from .hpke import open, generate_keypair
+from typing_extensions import Literal
+
+from .hpke import open, generate_keypair, seal
 from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven
+from ..types.wallet import Wallet
 from ..resources.wallets import (
     WalletsResource as BaseWalletsResource,
     AsyncWalletsResource as BaseAsyncWalletsResource,
@@ -27,6 +30,23 @@ class DecryptedWalletAuthenticateWithJwtResponse:
         self.decrypted_authorization_key = decrypted_authorization_key
         self.expires_at = expires_at
         self.wallets = wallets
+
+
+class WalletImportInitResponse:
+    """Response from wallet import initialization containing the encryption public key.
+
+    This response contains the encryption public key that should be used to encrypt
+    the wallet's private key before submitting the import.
+    """
+
+    def __init__(
+        self,
+        *,
+        encryption_type: str,
+        encryption_public_key: str,
+    ):
+        self.encryption_type = encryption_type
+        self.encryption_public_key = encryption_public_key
 
 
 class WalletsResource(BaseWalletsResource):
@@ -78,6 +98,200 @@ class WalletsResource(BaseWalletsResource):
             decrypted_authorization_key=decrypted_authorization_key["message"],
             expires_at=encrypted_payload.expires_at,
             wallets=encrypted_payload.wallets,
+        )
+
+    def import_wallet_init(
+        self,
+        *,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> WalletImportInitResponse:
+        """Initialize a wallet import and receive encryption public key.
+
+        This is step 1 of the wallet import process. Use the returned encryption_public_key
+        to encrypt the wallet's private key, then call import_wallet_submit() to complete
+        the import.
+
+        Args:
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            WalletImportInitResponse containing the encryption public key
+        """
+        response = self._client.post(
+            "/v1/wallets/import/init",
+            body={
+                "address": address,
+                "chain_type": chain_type,
+                "entropy_type": "private-key",
+                "encryption_type": "HPKE",
+            },
+            options={
+                "headers": extra_headers or {},
+                "query": extra_query or {},
+                "extra_body": extra_body or {},
+                "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
+            },
+        )
+        data = response.json()
+        return WalletImportInitResponse(
+            encryption_type=data["encryption_type"],
+            encryption_public_key=data["encryption_public_key"],
+        )
+
+    def import_wallet_submit(
+        self,
+        *,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        encapsulated_key: str,
+        ciphertext: str,
+        owner_id: str,
+        policy_ids: Optional[List[str]] = None,
+        additional_signers: Optional[List[Any]] = None,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> Wallet:
+        """Submit an encrypted wallet for import.
+
+        This is step 2 of the wallet import process. Use this after calling import_wallet_init()
+        and encrypting the private key with the provided encryption public key.
+
+        Args:
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            encapsulated_key: Base64-encoded encapsulated key from HPKE encryption
+            ciphertext: Base64-encoded encrypted private key
+            owner_id: The key quorum ID of the owner of the wallet
+            policy_ids: Optional list of policy IDs to enforce on the wallet
+            additional_signers: Optional list of additional signers for the wallet
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            Wallet object representing the imported wallet
+        """
+        # TODO_IMPROVE: Add support for owner object in addition to owner_id
+        body = {
+            "wallet": {
+                "address": address,
+                "chain_type": chain_type,
+                "entropy_type": "private-key",
+                "encryption_type": "HPKE",
+                "encapsulated_key": encapsulated_key,
+                "ciphertext": ciphertext,
+            },
+            "owner_id": owner_id,
+        }
+
+        if policy_ids is not None:
+            body["policy_ids"] = policy_ids
+
+        if additional_signers is not None:
+            body["additional_signers"] = additional_signers
+
+        response = self._client.post(
+            "/v1/wallets/import/submit",
+            body=body,
+            options={
+                "headers": extra_headers or {},
+                "query": extra_query or {},
+                "extra_body": extra_body or {},
+                "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
+            },
+        )
+        data = response.json()
+        return Wallet(**data)
+
+    def import_wallet(
+        self,
+        *,
+        private_key: str,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        owner_id: str,
+        policy_ids: Optional[List[str]] = None,
+        additional_signers: Optional[List[Any]] = None,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> Wallet:
+        """Import a wallet with automatic encryption handling (recommended).
+
+        This method performs the complete wallet import flow:
+        1. Initializes the import to get the encryption public key
+        2. Encrypts the private key using HPKE
+        3. Submits the encrypted wallet data
+
+        This is the recommended method for importing wallets as it handles all
+        security-critical operations automatically.
+
+        Args:
+            private_key: The raw private key to import (will be encrypted automatically)
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            owner_id: The key quorum ID of the owner of the wallet
+            policy_ids: Optional list of policy IDs to enforce on the wallet
+            additional_signers: Optional list of additional signers for the wallet
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            Wallet object representing the imported wallet
+        """
+        # TODO: Add support for HD wallets (entropy_type: "hd")
+
+        # Step 1: Initialize import to get encryption public key
+        init_response = self.import_wallet_init(
+            address=address,
+            chain_type=chain_type,
+            extra_headers=extra_headers,
+            extra_query=extra_query,
+            extra_body=extra_body,
+            timeout=timeout,
+        )
+
+        # Step 2: Encrypt the private key using HPKE
+        encrypted = seal(
+            public_key=init_response.encryption_public_key,
+            message=private_key,
+        )
+
+        # Step 3: Submit the encrypted wallet data
+        return self.import_wallet_submit(
+            address=address,
+            chain_type=chain_type,
+            encapsulated_key=encrypted["encapsulated_key"],
+            ciphertext=encrypted["ciphertext"],
+            owner_id=owner_id,
+            policy_ids=policy_ids,
+            additional_signers=additional_signers,
+            extra_headers=extra_headers,
+            extra_query=extra_query,
+            extra_body=extra_body,
+            timeout=timeout,
         )
 
 
@@ -134,4 +348,198 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
             decrypted_authorization_key=decrypted_authorization_key["message"],
             expires_at=encrypted_payload.expires_at,
             wallets=encrypted_payload.wallets,
+        )
+
+    async def import_wallet_init(
+        self,
+        *,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> WalletImportInitResponse:
+        """Asynchronously initialize a wallet import and receive encryption public key.
+
+        This is step 1 of the wallet import process. Use the returned encryption_public_key
+        to encrypt the wallet's private key, then call import_wallet_submit() to complete
+        the import.
+
+        Args:
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            WalletImportInitResponse containing the encryption public key
+        """
+        response = await self._client.post(
+            "/v1/wallets/import/init",
+            body={
+                "address": address,
+                "chain_type": chain_type,
+                "entropy_type": "private-key",
+                "encryption_type": "HPKE",
+            },
+            options={
+                "headers": extra_headers or {},
+                "query": extra_query or {},
+                "extra_body": extra_body or {},
+                "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
+            },
+        )
+        data = response.json()
+        return WalletImportInitResponse(
+            encryption_type=data["encryption_type"],
+            encryption_public_key=data["encryption_public_key"],
+        )
+
+    async def import_wallet_submit(
+        self,
+        *,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        encapsulated_key: str,
+        ciphertext: str,
+        owner_id: str,
+        policy_ids: Optional[List[str]] = None,
+        additional_signers: Optional[List[Any]] = None,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> Wallet:
+        """Asynchronously submit an encrypted wallet for import.
+
+        This is step 2 of the wallet import process. Use this after calling import_wallet_init()
+        and encrypting the private key with the provided encryption public key.
+
+        Args:
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            encapsulated_key: Base64-encoded encapsulated key from HPKE encryption
+            ciphertext: Base64-encoded encrypted private key
+            owner_id: The key quorum ID of the owner of the wallet
+            policy_ids: Optional list of policy IDs to enforce on the wallet
+            additional_signers: Optional list of additional signers for the wallet
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            Wallet object representing the imported wallet
+        """
+        # TODO_IMPROVE: Add support for owner object in addition to owner_id
+        body = {
+            "wallet": {
+                "address": address,
+                "chain_type": chain_type,
+                "entropy_type": "private-key",
+                "encryption_type": "HPKE",
+                "encapsulated_key": encapsulated_key,
+                "ciphertext": ciphertext,
+            },
+            "owner_id": owner_id,
+        }
+
+        if policy_ids is not None:
+            body["policy_ids"] = policy_ids
+
+        if additional_signers is not None:
+            body["additional_signers"] = additional_signers
+
+        response = await self._client.post(
+            "/v1/wallets/import/submit",
+            body=body,
+            options={
+                "headers": extra_headers or {},
+                "query": extra_query or {},
+                "extra_body": extra_body or {},
+                "timeout": timeout if timeout is not NOT_GIVEN else NOT_GIVEN,
+            },
+        )
+        data = response.json()
+        return Wallet(**data)
+
+    async def import_wallet(
+        self,
+        *,
+        private_key: str,
+        address: str,
+        chain_type: Literal["ethereum", "solana"],
+        owner_id: str,
+        policy_ids: Optional[List[str]] = None,
+        additional_signers: Optional[List[Any]] = None,
+        # Use the following arguments if you need to pass additional parameters to the API that aren't available via kwargs.
+        # The extra values given here take precedence over values defined on the client or passed to this method.
+        extra_headers: Optional[Headers] = None,
+        extra_query: Optional[Query] = None,
+        extra_body: Optional[Body] = None,
+        timeout: Union[float, httpx.Timeout, None, NotGiven] = NOT_GIVEN,
+    ) -> Wallet:
+        """Asynchronously import a wallet with automatic encryption handling (recommended).
+
+        This method performs the complete wallet import flow:
+        1. Initializes the import to get the encryption public key
+        2. Encrypts the private key using HPKE
+        3. Submits the encrypted wallet data
+
+        This is the recommended method for importing wallets as it handles all
+        security-critical operations automatically.
+
+        Args:
+            private_key: The raw private key to import (will be encrypted automatically)
+            address: The address of the wallet to import
+            chain_type: The chain type of the wallet (ethereum or solana)
+            owner_id: The key quorum ID of the owner of the wallet
+            policy_ids: Optional list of policy IDs to enforce on the wallet
+            additional_signers: Optional list of additional signers for the wallet
+            extra_headers: Optional additional headers for the request
+            extra_query: Optional additional query parameters
+            extra_body: Optional additional body parameters
+            timeout: Optional timeout for the request
+
+        Returns:
+            Wallet object representing the imported wallet
+        """
+        # TODO: Add support for HD wallets (entropy_type: "hd")
+
+        # Step 1: Initialize import to get encryption public key
+        init_response = await self.import_wallet_init(
+            address=address,
+            chain_type=chain_type,
+            extra_headers=extra_headers,
+            extra_query=extra_query,
+            extra_body=extra_body,
+            timeout=timeout,
+        )
+
+        # Step 2: Encrypt the private key using HPKE
+        encrypted = seal(
+            public_key=init_response.encryption_public_key,
+            message=private_key,
+        )
+
+        # Step 3: Submit the encrypted wallet data
+        return await self.import_wallet_submit(
+            address=address,
+            chain_type=chain_type,
+            encapsulated_key=encrypted["encapsulated_key"],
+            ciphertext=encrypted["ciphertext"],
+            owner_id=owner_id,
+            policy_ids=policy_ids,
+            additional_signers=additional_signers,
+            extra_headers=extra_headers,
+            extra_query=extra_query,
+            extra_body=extra_body,
+            timeout=timeout,
         )
