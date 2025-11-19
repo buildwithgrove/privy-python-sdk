@@ -240,7 +240,7 @@ class WalletsResource(BaseWalletsResource):
         security-critical operations automatically.
 
         Args:
-            private_key: The raw private key to import (will be encrypted automatically)
+            private_key: The private key as hex string (with or without 0x prefix)
             address: The address of the wallet to import
             chain_type: The chain type of the wallet (ethereum or solana)
             owner_id: The key quorum ID of the owner of the wallet
@@ -266,13 +266,19 @@ class WalletsResource(BaseWalletsResource):
             timeout=timeout,
         )
 
-        # Step 2: Encrypt the private key using HPKE
+        # Step 2: Convert hex private key to raw bytes
+        # Remove 0x prefix if present
+        hex_key = private_key[2:] if private_key.startswith("0x") else private_key
+        # Convert hex to bytes
+        key_bytes = bytes.fromhex(hex_key)
+
+        # Step 3: Encrypt the private key bytes using HPKE
         encrypted = seal(
             public_key=init_response.encryption_public_key,
-            message=private_key,
+            message=key_bytes,  # Pass raw bytes for encryption
         )
 
-        # Step 3: Submit the encrypted wallet data
+        # Step 4: Submit the encrypted wallet data
         return self.import_wallet_submit(
             address=address,
             chain_type=chain_type,
@@ -485,7 +491,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
         security-critical operations automatically.
 
         Args:
-            private_key: The raw private key to import (will be encrypted automatically)
+            private_key: The private key as hex string (with or without 0x prefix)
             address: The address of the wallet to import
             chain_type: The chain type of the wallet (ethereum or solana)
             owner_id: The key quorum ID of the owner of the wallet
@@ -511,10 +517,16 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
             timeout=timeout,
         )
 
-        # Step 2: Encrypt the private key using HPKE
+        # Step 2: Convert hex private key to raw bytes
+        # Remove 0x prefix if present
+        hex_key = private_key[2:] if private_key.startswith("0x") else private_key
+        # Convert hex to bytes
+        key_bytes = bytes.fromhex(hex_key)
+
+        # Step 3: Encrypt the private key bytes using HPKE
         encrypted = seal(
             public_key=init_response.encryption_public_key,
-            message=private_key,
+            message=key_bytes,  # Pass raw bytes for encryption
         )
 
         # Step 3: Submit the encrypted wallet data

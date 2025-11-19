@@ -1,5 +1,5 @@
 import base64
-from typing import TypedDict, cast
+from typing import TypedDict, Union, cast
 
 from pyhpke import KDFId, KEMId, AEADId, CipherSuite
 from cryptography.hazmat.backends import default_backend
@@ -13,12 +13,12 @@ class SealOutput(TypedDict):
     ciphertext: str
 
 
-def seal(public_key: str, message: str) -> SealOutput:
-    """Encrypts a UTF-8 message using HPKE with P-256 and ChaCha20-Poly1305.
+def seal(public_key: str, message: Union[str, bytes]) -> SealOutput:
+    """Encrypts a message using HPKE with P-256 and ChaCha20-Poly1305.
 
     Args:
         public_key: Base64-encoded raw P-256 public key (65 bytes, uncompressed format starting with 0x04)
-        message: UTF-8 string to encrypt
+        message: Data to encrypt - either a UTF-8 string or raw bytes
 
     Returns:
         SealOutput: A dictionary containing:
@@ -34,9 +34,12 @@ def seal(public_key: str, message: str) -> SealOutput:
     # Deserialize the public key for HPKE
     kem_public_key = suite.kem.deserialize_public_key(public_key_bytes)
 
+    # Convert message to bytes if it's a string
+    message_bytes = message.encode("utf-8") if isinstance(message, str) else message
+
     # Create sender context and encrypt
     enc, sender = suite.create_sender_context(kem_public_key)
-    ct = sender.seal(message.encode("utf-8"))
+    ct = sender.seal(message_bytes)
 
     return {
         "encapsulated_key": base64.b64encode(enc).decode("utf-8"),
