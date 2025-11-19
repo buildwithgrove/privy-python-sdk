@@ -1,7 +1,7 @@
 import base64
-from typing import TypedDict, cast
+from typing import TypedDict, Union, cast
 
-from pyhpke import KDFId, KEMId, AEADId, KEMKey, CipherSuite
+from pyhpke import KDFId, KEMId, AEADId, CipherSuite
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -13,26 +13,33 @@ class SealOutput(TypedDict):
     ciphertext: str
 
 
-def seal(public_key: str, message: str) -> SealOutput:
-    """Encrypts a UTF-8 message using HPKE with P-256 and ChaCha20-Poly1305.
+def seal(public_key: str, message: Union[str, bytes]) -> SealOutput:
+    """Encrypts a message using HPKE with P-256 and ChaCha20-Poly1305.
 
     Args:
-        public_key: Base64-encoded DER-formatted P-256 public key
-        message: UTF-8 string to encrypt
+        public_key: Base64-encoded raw P-256 public key (65 bytes, uncompressed format starting with 0x04)
+        message: Data to encrypt - either a UTF-8 string or raw bytes
 
     Returns:
         SealOutput: A dictionary containing:
             - encapsulated_key: Base64-encoded encapsulated key
             - ciphertext: Base64-encoded encrypted message
     """
-    # The sender side:
+    # Initialize the cipher suite
     suite = CipherSuite.new(KEMId.DHKEM_P256_HKDF_SHA256, KDFId.HKDF_SHA256, AEADId.CHACHA20_POLY1305)
 
-    decoded_public_key = base64.b64decode(public_key)
-    kem_key = KEMKey.from_pem(decoded_public_key)
+    # Decode the base64-encoded raw public key (uncompressed P-256 format)
+    public_key_bytes = base64.b64decode(public_key)
 
-    enc, sender = suite.create_sender_context(kem_key)
-    ct = sender.seal(message.encode("utf-8"))
+    # Deserialize the public key for HPKE
+    kem_public_key = suite.kem.deserialize_public_key(public_key_bytes)
+
+    # Convert message to bytes if it's a string
+    message_bytes = message.encode("utf-8") if isinstance(message, str) else message
+
+    # Create sender context and encrypt
+    enc, sender = suite.create_sender_context(kem_public_key)
+    ct = sender.seal(message_bytes)
 
     return {
         "encapsulated_key": base64.b64encode(enc).decode("utf-8"),
