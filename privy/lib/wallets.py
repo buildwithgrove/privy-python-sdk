@@ -529,7 +529,7 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
             message=key_bytes,  # Pass raw bytes for encryption
         )
 
-        # Step 3: Submit the encrypted wallet data
+        # Step 4: Submit the encrypted wallet data
         return await self.import_wallet_submit(
             address=address,
             chain_type=chain_type,
