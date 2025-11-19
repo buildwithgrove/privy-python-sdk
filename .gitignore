@@ -9,3 +9,9 @@ build/
 *~
 .venv/
 venv/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+*.cover
