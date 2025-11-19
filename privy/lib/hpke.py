@@ -1,7 +1,7 @@
 import base64
 from typing import TypedDict, cast
 
-from pyhpke import KDFId, KEMId, AEADId, KEMKey, CipherSuite
+from pyhpke import KDFId, KEMId, AEADId, CipherSuite
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -17,7 +17,7 @@ def seal(public_key: str, message: str) -> SealOutput:
     """Encrypts a UTF-8 message using HPKE with P-256 and ChaCha20-Poly1305.
 
     Args:
-        public_key: Base64-encoded DER-formatted P-256 public key
+        public_key: Base64-encoded raw P-256 public key (65 bytes, uncompressed format starting with 0x04)
         message: UTF-8 string to encrypt
 
     Returns:
@@ -28,17 +28,8 @@ def seal(public_key: str, message: str) -> SealOutput:
     # Initialize the cipher suite
     suite = CipherSuite.new(KEMId.DHKEM_P256_HKDF_SHA256, KDFId.HKDF_SHA256, AEADId.CHACHA20_POLY1305)
 
-    # Decode the base64-encoded DER public key
-    decoded_public_key = base64.b64decode(public_key)
-
-    # Load the DER-formatted public key using cryptography
-    loaded_public_key = serialization.load_der_public_key(decoded_public_key, backend=default_backend())
-
-    # Extract the raw public key bytes (uncompressed format for P-256)
-    public_key_bytes = loaded_public_key.public_bytes(
-        encoding=serialization.Encoding.X962,
-        format=serialization.PublicFormat.UncompressedPoint
-    )
+    # Decode the base64-encoded raw public key (uncompressed P-256 format)
+    public_key_bytes = base64.b64decode(public_key)
 
     # Deserialize the public key for HPKE
     kem_public_key = suite.kem.deserialize_public_key(public_key_bytes)
