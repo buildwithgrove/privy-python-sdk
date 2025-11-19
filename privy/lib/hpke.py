@@ -25,13 +25,26 @@ def seal(public_key: str, message: str) -> SealOutput:
             - encapsulated_key: Base64-encoded encapsulated key
             - ciphertext: Base64-encoded encrypted message
     """
-    # The sender side:
+    # Initialize the cipher suite
     suite = CipherSuite.new(KEMId.DHKEM_P256_HKDF_SHA256, KDFId.HKDF_SHA256, AEADId.CHACHA20_POLY1305)
 
+    # Decode the base64-encoded DER public key
     decoded_public_key = base64.b64decode(public_key)
-    kem_key = KEMKey.from_pem(decoded_public_key)
 
-    enc, sender = suite.create_sender_context(kem_key)
+    # Load the DER-formatted public key using cryptography
+    loaded_public_key = serialization.load_der_public_key(decoded_public_key, backend=default_backend())
+
+    # Extract the raw public key bytes (uncompressed format for P-256)
+    public_key_bytes = loaded_public_key.public_bytes(
+        encoding=serialization.Encoding.X962,
+        format=serialization.PublicFormat.UncompressedPoint
+    )
+
+    # Deserialize the public key for HPKE
+    kem_public_key = suite.kem.deserialize_public_key(public_key_bytes)
+
+    # Create sender context and encrypt
+    enc, sender = suite.create_sender_context(kem_public_key)
     ct = sender.seal(message.encode("utf-8"))
 
     return {
