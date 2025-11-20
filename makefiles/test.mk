@@ -5,7 +5,7 @@
 .PHONY: test_unit
 test_unit: ## Run unit tests
 	$(call print_info_section,Running unit tests)
-	$(Q)uv run pytest tests/ -v
+	$(Q).venv/bin/python -m pytest tests/ -v
 	$(call print_success,Unit tests passed)
 
 .PHONY: test_unit_coverage

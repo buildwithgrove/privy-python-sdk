@@ -1,7 +1,9 @@
 """Future SDK integration example for AuthorizationContext.
 
 This file demonstrates the intended API once SDK methods are updated to
-accept authorization_context parameters. This integration is not yet implemented.
+accept authorization_context parameters.
+
+Note: Key quorums integration is complete. See key_quorum_authorization_context_example.py.
 
 See AUTHORIZATION_CONTEXT.md for current usage patterns.
 """
@@ -10,11 +12,10 @@ from privy import PrivyAPI
 from privy.lib import AuthorizationContext
 
 
-# TODO_IN_THIS_PR: Integrate authorization_context into SDK resource methods
-# This requires updating the following files:
+# TODO: Integrate authorization_context into remaining SDK resource methods
+# This requires updating:
 # - privy/resources/wallets/transactions.py
 # - privy/resources/policies.py
-# - privy/resources/key_quorums.py
 # - Other resources that require signing
 
 

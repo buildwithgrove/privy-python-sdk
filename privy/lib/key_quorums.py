@@ -1,6 +1,6 @@
 """Extended KeyQuorums resource with AuthorizationContext support."""
 
-from typing import List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import httpx
 
@@ -14,6 +14,46 @@ from ..resources.key_quorums import (
 from ..types import key_quorum_update_params
 from ..types.key_quorum import KeyQuorum
 from .authorization_context import AuthorizationContext
+
+
+def _prepare_authorization_headers(
+    authorization_context: Optional[AuthorizationContext],
+    privy_authorization_signature: str | NotGiven,
+    request_method: str,
+    request_url: str,
+    request_body: Dict[str, Any],
+    app_id: str,
+) -> Dict[str, str]:
+    """Generate authorization headers from context or manual signature.
+
+    This helper handles the common pattern of generating signatures from an
+    AuthorizationContext or using a manually provided signature.
+
+    TODO_IMPROVE: Extract to shared module for reuse
+    Once we extend more resources (transactions, policies), consider moving
+    this to a shared location like privy.lib._resource_helpers to avoid duplication.
+
+    Args:
+        authorization_context: Optional AuthorizationContext for automatic signature generation
+        privy_authorization_signature: Manual signature(s), ignored if authorization_context is provided
+        request_method: HTTP method (e.g., "PATCH", "DELETE")
+        request_url: Full URL of the request
+        request_body: Request body as a dictionary
+        app_id: Privy app ID
+
+    Returns:
+        Dictionary with authorization signature header (may be empty if no signature)
+    """
+    if authorization_context is not None:
+        signatures = authorization_context.generate_signatures(
+            request_method=request_method,
+            request_url=request_url,
+            request_body=request_body,
+            app_id=app_id,
+        )
+        privy_authorization_signature = ",".join(signatures)
+
+    return strip_not_given({"privy-authorization-signature": privy_authorization_signature})
 
 
 class KeyQuorumsResource(BaseKeyQuorumsResource):
@@ -88,31 +128,25 @@ class KeyQuorumsResource(BaseKeyQuorumsResource):
         if not key_quorum_id:
             raise ValueError(f"Expected a non-empty value for `key_quorum_id` but received {key_quorum_id!r}")
 
-        # Generate signatures from authorization_context if provided
-        if authorization_context is not None:
-            # Prepare the request body for signature generation
-            request_body = {
-                "public_keys": public_keys,
-                "authorization_threshold": authorization_threshold,
-                "display_name": display_name,
-            }
+        # Prepare request body for signature generation
+        request_body = {
+            "public_keys": public_keys,
+            "authorization_threshold": authorization_threshold,
+            "display_name": display_name,
+        }
 
-            # Get app_id from the client
-            app_id = getattr(self._client, 'app_id', '')
-
-            # Generate signatures
-            signatures = authorization_context.generate_signatures(
-                request_method="PATCH",
-                request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
-                request_body=request_body,
-                app_id=app_id,
-            )
-
-            # Join signatures with comma separator
-            privy_authorization_signature = ",".join(signatures)
+        # Generate authorization headers
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="PATCH",
+            request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
+            request_body=request_body,
+            app_id=getattr(self._client, 'app_id', ''),
+        )
 
         extra_headers = {
-            **strip_not_given({"privy-authorization-signature": privy_authorization_signature}),
+            **auth_headers,
             **(extra_headers or {}),
         }
         return self._patch(
@@ -187,24 +221,18 @@ class KeyQuorumsResource(BaseKeyQuorumsResource):
         if not key_quorum_id:
             raise ValueError(f"Expected a non-empty value for `key_quorum_id` but received {key_quorum_id!r}")
 
-        # Generate signatures from authorization_context if provided
-        if authorization_context is not None:
-            # Get app_id from the client
-            app_id = getattr(self._client, 'app_id', '')
-
-            # Generate signatures (DELETE has empty body)
-            signatures = authorization_context.generate_signatures(
-                request_method="DELETE",
-                request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
-                request_body={},
-                app_id=app_id,
-            )
-
-            # Join signatures with comma separator
-            privy_authorization_signature = ",".join(signatures)
+        # Generate authorization headers (DELETE has empty body)
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="DELETE",
+            request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
+            request_body={},
+            app_id=getattr(self._client, 'app_id', ''),
+        )
 
         extra_headers = {
-            **strip_not_given({"privy-authorization-signature": privy_authorization_signature}),
+            **auth_headers,
             **(extra_headers or {}),
         }
         return self._delete(
@@ -288,31 +316,25 @@ class AsyncKeyQuorumsResource(BaseAsyncKeyQuorumsResource):
         if not key_quorum_id:
             raise ValueError(f"Expected a non-empty value for `key_quorum_id` but received {key_quorum_id!r}")
 
-        # Generate signatures from authorization_context if provided
-        if authorization_context is not None:
-            # Prepare the request body for signature generation
-            request_body = {
-                "public_keys": public_keys,
-                "authorization_threshold": authorization_threshold,
-                "display_name": display_name,
-            }
+        # Prepare request body for signature generation
+        request_body = {
+            "public_keys": public_keys,
+            "authorization_threshold": authorization_threshold,
+            "display_name": display_name,
+        }
 
-            # Get app_id from the client
-            app_id = getattr(self._client, 'app_id', '')
-
-            # Generate signatures
-            signatures = authorization_context.generate_signatures(
-                request_method="PATCH",
-                request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
-                request_body=request_body,
-                app_id=app_id,
-            )
-
-            # Join signatures with comma separator
-            privy_authorization_signature = ",".join(signatures)
+        # Generate authorization headers
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="PATCH",
+            request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
+            request_body=request_body,
+            app_id=getattr(self._client, 'app_id', ''),
+        )
 
         extra_headers = {
-            **strip_not_given({"privy-authorization-signature": privy_authorization_signature}),
+            **auth_headers,
             **(extra_headers or {}),
         }
         return await self._patch(
@@ -387,24 +409,18 @@ class AsyncKeyQuorumsResource(BaseAsyncKeyQuorumsResource):
         if not key_quorum_id:
             raise ValueError(f"Expected a non-empty value for `key_quorum_id` but received {key_quorum_id!r}")
 
-        # Generate signatures from authorization_context if provided
-        if authorization_context is not None:
-            # Get app_id from the client
-            app_id = getattr(self._client, 'app_id', '')
-
-            # Generate signatures (DELETE has empty body)
-            signatures = authorization_context.generate_signatures(
-                request_method="DELETE",
-                request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
-                request_body={},
-                app_id=app_id,
-            )
-
-            # Join signatures with comma separator
-            privy_authorization_signature = ",".join(signatures)
+        # Generate authorization headers (DELETE has empty body)
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="DELETE",
+            request_url=f"{self._client.base_url}/v1/key_quorums/{key_quorum_id}",
+            request_body={},
+            app_id=getattr(self._client, 'app_id', ''),
+        )
 
         extra_headers = {
-            **strip_not_given({"privy-authorization-signature": privy_authorization_signature}),
+            **auth_headers,
             **(extra_headers or {}),
         }
         return await self._delete(

@@ -1,7 +1,7 @@
 """Tests for KeyQuorums resource with AuthorizationContext integration."""
 
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, AsyncMock, patch
 from privy import PrivyAPI, AsyncPrivyAPI
 from privy.lib import AuthorizationContext
 
@@ -182,12 +182,9 @@ class TestAsyncKeyQuorumsWithAuthorizationContext:
             .build()
         )
 
-        with patch.object(client.key_quorums, '_patch') as mock_patch:
-            # Make the mock return a coroutine
-            async def mock_patch_coro(*args, **kwargs):
-                return Mock(id="quorum_123")
-
-            mock_patch.return_value = mock_patch_coro()
+        with patch.object(client.key_quorums, '_patch', new_callable=AsyncMock) as mock_patch:
+            # Set the return value for the async mock
+            mock_patch.return_value = Mock(id="quorum_123")
 
             await client.key_quorums.update(
                 key_quorum_id="quorum_123",
@@ -211,11 +208,9 @@ class TestAsyncKeyQuorumsWithAuthorizationContext:
             .build()
         )
 
-        with patch.object(client.key_quorums, '_delete') as mock_delete:
-            async def mock_delete_coro(*args, **kwargs):
-                return Mock(id="quorum_123")
-
-            mock_delete.return_value = mock_delete_coro()
+        with patch.object(client.key_quorums, '_delete', new_callable=AsyncMock) as mock_delete:
+            # Set the return value for the async mock
+            mock_delete.return_value = Mock(id="quorum_123")
 
             await client.key_quorums.delete(
                 key_quorum_id="quorum_123",

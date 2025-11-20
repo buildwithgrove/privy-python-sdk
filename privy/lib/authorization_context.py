@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import base64
 from typing import Any, Callable, Dict, List, Optional, Union
-from typing_extensions import Protocol, TypedDict
+from typing_extensions import Protocol, Self, TypedDict
 
 from .authorization_signatures import get_authorization_signature
 
@@ -29,6 +29,13 @@ class CustomSignFunction(Protocol):
 
     Custom signing functions allow you to implement signing logic in a separate service
     (e.g., KMS, HSM) or with custom business logic.
+
+    TODO: Add support for async custom sign functions
+    This would enable async KMS integrations but requires:
+    1. New AsyncCustomSignFunction protocol
+    2. Async-aware generate_signatures() method
+    3. Type checking to determine sync vs async function
+    Consider this for a future enhancement when async KMS is needed.
     """
 
     def __call__(
@@ -167,7 +174,7 @@ class AuthorizationContext:
             all_signatures.append(signature)
 
         # 2. Generate signatures from user JWTs
-        # TODO_IN_THIS_PR: Implement user JWT-based signing
+        # TODO: Implement user JWT-based signing
         # This requires:
         # - Calling the API to exchange JWT for signing keys
         # - Using the returned keys to sign the request
@@ -231,7 +238,7 @@ class AuthorizationContextBuilder:
         self._custom_sign_function: Optional[CustomSignFunction] = None
         self._signatures: List[SignatureResult] = []
 
-    def add_authorization_private_key(self, private_key: str) -> AuthorizationContextBuilder:
+    def add_authorization_private_key(self, private_key: str) -> Self:
         """Add an authorization private key for signing.
 
         The private key will be used to compute ECDSA P-256 signatures over requests.
@@ -247,7 +254,7 @@ class AuthorizationContextBuilder:
         self._authorization_private_keys.append(clean_key)
         return self
 
-    def add_user_jwt(self, jwt: str) -> AuthorizationContextBuilder:
+    def add_user_jwt(self, jwt: str) -> Self:
         """Add a user JWT for user-based signing.
 
         The SDK will request user signing keys given the JWT and compute P256 signatures.
@@ -263,7 +270,7 @@ class AuthorizationContextBuilder:
         self._user_jwts.append(jwt)
         return self
 
-    def set_custom_sign_function(self, sign_function: CustomSignFunction) -> AuthorizationContextBuilder:
+    def set_custom_sign_function(self, sign_function: CustomSignFunction) -> Self:
         """Set a custom signing function.
 
         Use this when signing logic needs to occur in a separate service (e.g., KMS, HSM)
@@ -282,7 +289,7 @@ class AuthorizationContextBuilder:
         self,
         signature: str,
         signer_public_key: Optional[str] = None,
-    ) -> AuthorizationContextBuilder:
+    ) -> Self:
         """Add a pre-computed signature.
 
         Use this if you compute signatures separately from calling the SDK.

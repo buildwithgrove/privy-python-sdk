@@ -115,39 +115,34 @@ signatures = auth_context.generate_signatures(...)
 
 ## Features Implemented
 
-### ✅ Completed
+### Completed
 
-- [x] Core `AuthorizationContext` class
-- [x] `AuthorizationContextBuilder` with fluent API
-- [x] Authorization private key signing
-- [x] Custom signing function support
-- [x] Pre-computed signature support
-- [x] Type-safe protocols and TypedDicts
-- [x] Comprehensive unit tests (11 tests)
-- [x] Working examples (6 examples)
-- [x] Full documentation
-- [x] Integration with existing `authorization_signatures.py`
-- [x] Automatic prefix stripping (`wallet-auth:`)
-- [x] Multi-key support
+- Core `AuthorizationContext` class
+- `AuthorizationContextBuilder` with fluent API
+- Authorization private key signing
+- Custom signing function support
+- Pre-computed signature support
+- Type-safe protocols and TypedDicts
+- Comprehensive unit tests (11 tests)
+- Working examples (6 examples)
+- Full documentation
+- Integration with existing `authorization_signatures.py`
+- Automatic prefix stripping (`wallet-auth:`)
+- Multi-key support
 
-### ⏳ Planned (Not Yet Implemented)
+### Planned
 
-- [ ] User JWT-based signing
+- User JWT-based signing
   - Requires API integration to exchange JWT for signing keys
   - Infrastructure ready, raises `NotImplementedError` with clear message
 
-- [ ] SDK method integration
+- SDK method integration
   - Add `authorization_context` parameter to resource methods:
     - `wallets.transactions.create()`
     - `policies.update()`
-    - `key_quorums` operations
   - Update HTTP client to handle per-request signatures
 
-- [ ] Key quorum signing
-  - Support for multi-party signatures
-  - Threshold-based signing
-
-- [ ] Async custom sign functions
+- Async custom sign functions
   - Support for async/await in custom signing functions
 
 ## Design Decisions
