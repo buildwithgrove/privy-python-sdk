@@ -30,6 +30,10 @@ from .lib.key_quorums import (
     KeyQuorumsResource as PrivyKeyQuorumsResource,
     AsyncKeyQuorumsResource as PrivyAsyncKeyQuorumsResource,
 )
+from .lib.policies import (
+    PoliciesResource as PrivyPoliciesResource,
+    AsyncPoliciesResource as PrivyAsyncPoliciesResource,
+)
 from .resources import users, policies, key_quorums, transactions
 from ._streaming import Stream as Stream, AsyncStream as AsyncStream
 from ._exceptions import PrivyAPIError, APIStatusError
@@ -172,7 +176,7 @@ class PrivyAPI(SyncAPIClient):
 
         self.wallets = PrivyWalletsResource(self)
         self.users = PrivyUsersResource(self)
-        self.policies = policies.PoliciesResource(self)
+        self.policies = PrivyPoliciesResource(self)
         self.transactions = transactions.TransactionsResource(self)
         self.key_quorums = PrivyKeyQuorumsResource(self)
         self.fiat = fiat.FiatResource(self)
@@ -398,7 +402,7 @@ class AsyncPrivyAPI(AsyncAPIClient):
 
         self.wallets = PrivyAsyncWalletsResource(self)
         self.users = PrivyAsyncUsersResource(self)
-        self.policies = policies.AsyncPoliciesResource(self)
+        self.policies = PrivyAsyncPoliciesResource(self)
         self.transactions = transactions.AsyncTransactionsResource(self)
         self.key_quorums = PrivyAsyncKeyQuorumsResource(self)
         self.fiat = fiat.AsyncFiatResource(self)
