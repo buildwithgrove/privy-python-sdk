@@ -1,17 +1,57 @@
-from typing import Any, List, Union, Optional
+from typing import Any, List, Union, Optional, Iterable, Dict, cast
 
 import httpx
 
 from typing_extensions import Literal
 
 from .hpke import open, generate_keypair, seal
+from .authorization_context import AuthorizationContext
 from .._types import NOT_GIVEN, Body, Query, Headers, NotGiven
+from .._utils import maybe_transform, async_maybe_transform, strip_not_given
+from .._base_client import make_request_options
 from .._models import BaseModel
 from ..types.wallet import Wallet
+from ..types import wallet_update_params
 from ..resources.wallets import (
     WalletsResource as BaseWalletsResource,
     AsyncWalletsResource as BaseAsyncWalletsResource,
 )
+
+
+def _prepare_authorization_headers(
+    authorization_context: Optional[AuthorizationContext],
+    privy_authorization_signature: str | NotGiven,
+    request_method: str,
+    request_url: str,
+    request_body: Dict[str, Any],
+    app_id: str,
+) -> Dict[str, str]:
+    """Generate authorization headers from context or manual signature.
+
+    This helper handles the common pattern of generating signatures from an
+    AuthorizationContext or using a manually provided signature.
+
+    Args:
+        authorization_context: Optional AuthorizationContext for automatic signature generation
+        privy_authorization_signature: Manual signature(s), ignored if authorization_context is provided
+        request_method: HTTP method (e.g., "PATCH", "DELETE")
+        request_url: Full URL of the request
+        request_body: Request body as a dictionary
+        app_id: Privy app ID
+
+    Returns:
+        Dictionary with authorization signature header (may be empty if no signature)
+    """
+    if authorization_context is not None:
+        signatures = authorization_context.generate_signatures(
+            request_method=request_method,
+            request_url=request_url,
+            request_body=request_body,
+            app_id=app_id,
+        )
+        privy_authorization_signature = ",".join(signatures)
+
+    return strip_not_given({"privy-authorization-signature": privy_authorization_signature})
 
 
 class DecryptedWalletAuthenticateWithJwtResponse:
@@ -48,6 +88,135 @@ class WalletImportInitResponse(BaseModel):
 
 
 class WalletsResource(BaseWalletsResource):
+    """Extended Wallets resource with AuthorizationContext support.
+
+    Extends the base WalletsResource to support automatic signature generation
+    via AuthorizationContext for operations that require authorization signatures.
+    """
+
+    def update(
+        self,
+        wallet_id: str,
+        *,
+        additional_signers: Iterable[wallet_update_params.AdditionalSigner] | NotGiven = NOT_GIVEN,
+        owner: Optional[wallet_update_params.Owner] | NotGiven = NOT_GIVEN,
+        owner_id: Optional[str] | NotGiven = NOT_GIVEN,
+        policy_ids: List[str] | NotGiven = NOT_GIVEN,
+        authorization_context: Optional[AuthorizationContext] = None,
+        privy_authorization_signature: str | NotGiven = NOT_GIVEN,
+        extra_headers: Headers | None = None,
+        extra_query: Query | None = None,
+        extra_body: Body | None = None,
+        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    ) -> Wallet:
+        """Update a wallet with automatic signature generation via AuthorizationContext.
+
+        This extended method supports both manual signature passing and automatic
+        signature generation via AuthorizationContext.
+
+        Args:
+            wallet_id: ID of the wallet to update
+            additional_signers: Additional signers for the wallet
+            owner: The P-256 public key of the owner of the wallet. If you provide this,
+                do not specify an owner_id as it will be generated automatically.
+            owner_id: The key quorum ID to set as the owner of the wallet. If you provide
+                this, do not specify an owner.
+            policy_ids: New policy IDs to enforce on the wallet. Currently, only one policy
+                is supported per wallet.
+            authorization_context: AuthorizationContext for automatic signature generation.
+                If provided, signatures will be generated and included automatically.
+            privy_authorization_signature: Manual authorization signature(s). If multiple
+                signatures are required, they should be comma separated. This is ignored
+                if authorization_context is provided.
+            extra_headers: Send extra headers
+            extra_query: Add additional query parameters to the request
+            extra_body: Add additional JSON properties to the request
+            timeout: Override the client-level default timeout for this request, in seconds
+
+        Returns:
+            Updated Wallet
+
+        Example:
+            # Using AuthorizationContext (recommended)
+            auth_context = (
+                AuthorizationContext.builder()
+                .add_authorization_private_key("key1")
+                .add_authorization_private_key("key2")
+                .build()
+            )
+
+            wallet = client.wallets.update(
+                wallet_id="wallet_id",
+                policy_ids=["policy_id"],
+                authorization_context=auth_context
+            )
+
+            # Using manual signatures
+            wallet = client.wallets.update(
+                wallet_id="wallet_id",
+                policy_ids=["policy_id"],
+                privy_authorization_signature="sig1,sig2"
+            )
+        """
+        if not wallet_id:
+            raise ValueError(f"Expected a non-empty value for `wallet_id` but received {wallet_id!r}")
+
+        # If no authorization_context provided, use parent method
+        # This allows the HTTP client's authorization key (set via update_authorization_key) to work
+        if authorization_context is None:
+            return super().update(
+                wallet_id=wallet_id,
+                additional_signers=additional_signers,
+                owner=owner,
+                owner_id=owner_id,
+                policy_ids=policy_ids,
+                privy_authorization_signature=privy_authorization_signature,
+                extra_headers=extra_headers,
+                extra_query=extra_query,
+                extra_body=extra_body,
+                timeout=timeout,
+            )
+
+        # If authorization_context provided, generate signatures
+        request_body = {
+            "additional_signers": additional_signers,
+            "owner": owner,
+            "owner_id": owner_id,
+            "policy_ids": policy_ids,
+        }
+
+        # Generate authorization headers
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="PATCH",
+            request_url=f"{self._client.base_url}/v1/wallets/{wallet_id}",
+            request_body=request_body,
+            app_id=getattr(self._client, 'app_id', ''),
+        )
+
+        extra_headers = {
+            **auth_headers,
+            **(extra_headers or {}),
+        }
+
+        return self._patch(
+            f"/v1/wallets/{wallet_id}",
+            body=maybe_transform(
+                {
+                    "additional_signers": additional_signers,
+                    "owner": owner,
+                    "owner_id": owner_id,
+                    "policy_ids": policy_ids,
+                },
+                wallet_update_params.WalletUpdateParams,
+            ),
+            options=make_request_options(
+                extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
+            ),
+            cast_to=Wallet,
+        )
+
     def generate_user_signer(
         self,
         *,
@@ -295,6 +464,107 @@ class WalletsResource(BaseWalletsResource):
 
 
 class AsyncWalletsResource(BaseAsyncWalletsResource):
+    """Extended Async Wallets resource with AuthorizationContext support.
+
+    Extends the base AsyncWalletsResource to support automatic signature generation
+    via AuthorizationContext for operations that require authorization signatures.
+    """
+
+    async def update(
+        self,
+        wallet_id: str,
+        *,
+        additional_signers: Iterable[wallet_update_params.AdditionalSigner] | NotGiven = NOT_GIVEN,
+        owner: Optional[wallet_update_params.Owner] | NotGiven = NOT_GIVEN,
+        owner_id: Optional[str] | NotGiven = NOT_GIVEN,
+        policy_ids: List[str] | NotGiven = NOT_GIVEN,
+        authorization_context: Optional[AuthorizationContext] = None,
+        privy_authorization_signature: str | NotGiven = NOT_GIVEN,
+        extra_headers: Headers | None = None,
+        extra_query: Query | None = None,
+        extra_body: Body | None = None,
+        timeout: float | httpx.Timeout | None | NotGiven = NOT_GIVEN,
+    ) -> Wallet:
+        """Asynchronously update a wallet with automatic signature generation.
+
+        This extended method supports both manual signature passing and automatic
+        signature generation via AuthorizationContext.
+
+        Args:
+            wallet_id: ID of the wallet to update
+            additional_signers: Additional signers for the wallet
+            owner: The P-256 public key of the owner of the wallet
+            owner_id: The key quorum ID to set as the owner of the wallet
+            policy_ids: New policy IDs to enforce on the wallet
+            authorization_context: AuthorizationContext for automatic signature generation
+            privy_authorization_signature: Manual authorization signature(s)
+            extra_headers: Send extra headers
+            extra_query: Add additional query parameters to the request
+            extra_body: Add additional JSON properties to the request
+            timeout: Override the client-level default timeout for this request
+
+        Returns:
+            Updated Wallet
+        """
+        if not wallet_id:
+            raise ValueError(f"Expected a non-empty value for `wallet_id` but received {wallet_id!r}")
+
+        # If no authorization_context provided, use parent method
+        # This allows the HTTP client's authorization key (set via update_authorization_key) to work
+        if authorization_context is None:
+            return await super().update(
+                wallet_id=wallet_id,
+                additional_signers=additional_signers,
+                owner=owner,
+                owner_id=owner_id,
+                policy_ids=policy_ids,
+                privy_authorization_signature=privy_authorization_signature,
+                extra_headers=extra_headers,
+                extra_query=extra_query,
+                extra_body=extra_body,
+                timeout=timeout,
+            )
+
+        # If authorization_context provided, generate signatures
+        request_body = {
+            "additional_signers": additional_signers,
+            "owner": owner,
+            "owner_id": owner_id,
+            "policy_ids": policy_ids,
+        }
+
+        # Generate authorization headers
+        auth_headers = _prepare_authorization_headers(
+            authorization_context=authorization_context,
+            privy_authorization_signature=privy_authorization_signature,
+            request_method="PATCH",
+            request_url=f"{self._client.base_url}/v1/wallets/{wallet_id}",
+            request_body=request_body,
+            app_id=getattr(self._client, 'app_id', ''),
+        )
+
+        extra_headers = {
+            **auth_headers,
+            **(extra_headers or {}),
+        }
+
+        return await self._patch(
+            f"/v1/wallets/{wallet_id}",
+            body=await async_maybe_transform(
+                {
+                    "additional_signers": additional_signers,
+                    "owner": owner,
+                    "owner_id": owner_id,
+                    "policy_ids": policy_ids,
+                },
+                wallet_update_params.WalletUpdateParams,
+            ),
+            options=make_request_options(
+                extra_headers=extra_headers, extra_query=extra_query, extra_body=extra_body, timeout=timeout
+            ),
+            cast_to=Wallet,
+        )
+
     async def generate_user_signer(
         self,
         *,

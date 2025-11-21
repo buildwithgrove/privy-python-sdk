@@ -1,10 +1,13 @@
 import json
 import base64
+import logging
 from typing import Any, Dict, cast
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+
+logger = logging.getLogger(__name__)
 
 
 def canonicalize(obj: Any) -> str:
@@ -19,35 +22,46 @@ def get_authorization_signature(
     url: str,
     body: Dict[str, Any],
     method: str,
-    app_id: str,
     private_key: str,
+    app_id: str | None = None,
+    headers: Dict[str, str] | None = None,
 ) -> str:
-    """Generate authorization signature for Privy API requests using ECDSA and hashlib.
+    """Generate authorization signature for Privy API requests using ECDSA P-256.
 
     Args:
         url: The URL of the request
         body: The request body
-        app_id: The Privy app ID
-        private_key: The private key for authorization (without the 'wallet-auth:' prefix)
+        method: HTTP method (POST, PUT, PATCH, DELETE)
+        private_key: Base64-encoded PKCS#8 EC private key
+        app_id: The Privy app ID (deprecated - use headers instead)
+        headers: Privy-specific headers to include in signature payload
 
     Returns:
         The base64-encoded signature
     """
+    # Build headers dict - support both old (app_id) and new (headers) API
+    if headers is None:
+        if app_id is None:
+            raise ValueError("Either app_id or headers must be provided")
+        headers = {"privy-app-id": app_id}
+
     # Construct the payload
     payload = {
         "version": 1,
         "method": method,
         "url": url,
         "body": body,
-        "headers": {"privy-app-id": app_id},
+        "headers": headers,
     }
 
     # Serialize the payload to JSON
     serialized_payload = canonicalize(payload)
 
+    # Log the serialized payload for debugging
+    logger.debug(f"Serialized authorization payload: {serialized_payload}")
+
     # Create ECDSA P-256 signing key from private key
-    private_key_string = private_key.replace("wallet-auth:", "")
-    private_key_pem = f"-----BEGIN PRIVATE KEY-----\n{private_key_string}\n-----END PRIVATE KEY-----"
+    private_key_pem = f"-----BEGIN PRIVATE KEY-----\n{private_key}\n-----END PRIVATE KEY-----"
 
     # Load the private key from PEM format
     loaded_private_key = cast(

@@ -192,9 +192,10 @@ class TestImportWallet:
         )
 
         # Verify seal was called with correct parameters
+        # Note: The private key is converted from hex string to bytes before encryption
         mock_seal.assert_called_once_with(
             public_key="mock_public_key",
-            message="0x1234567890abcdef"
+            message=bytes.fromhex("1234567890abcdef")  # Hex string converted to bytes
         )
 
         # Verify result
@@ -237,17 +238,20 @@ class TestImportWallet:
 
         client = PrivyAPI(app_id="test_app_id", app_secret="test_secret")
 
+        # Use a valid hex-encoded private key
+        hex_private_key = "0xabcdef1234567890"
         client.wallets.import_wallet(
-            private_key="my_secret_key",
+            private_key=hex_private_key,
             address="0xABC",
             chain_type="ethereum",
             owner_id="owner_123"
         )
 
         # Verify seal was called with the encryption public key from init
+        # Note: The private key is converted from hex string to bytes before encryption
         mock_seal.assert_called_once_with(
             public_key="server_public_key",
-            message="my_secret_key"
+            message=bytes.fromhex("abcdef1234567890")  # Hex string converted to bytes
         )
 
         # Verify the encrypted data was sent to submit endpoint
@@ -319,8 +323,10 @@ class TestAsyncImportWallet:
 
         client = AsyncPrivyAPI(app_id="test_app_id", app_secret="test_secret")
 
+        # Use a valid hex-encoded private key
+        hex_private_key = "0xfedcba9876543210"
         result = await client.wallets.import_wallet(
-            private_key="async_private_key",
+            private_key=hex_private_key,
             address="0xASYNC",
             chain_type="solana",
             owner_id="async_owner"
@@ -331,7 +337,8 @@ class TestAsyncImportWallet:
         assert result.chain_type == "solana"
 
         # Verify seal was called correctly
+        # Note: The private key is converted from hex string to bytes before encryption
         mock_seal.assert_called_once_with(
             public_key="async_pub_key",
-            message="async_private_key"
+            message=bytes.fromhex("fedcba9876543210")  # Hex string converted to bytes
         )

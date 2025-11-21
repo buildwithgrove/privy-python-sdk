@@ -26,6 +26,14 @@ from .lib.users import (
     UsersResource as PrivyUsersResource,
     AsyncUsersResource as PrivyAsyncUsersResource,
 )
+from .lib.key_quorums import (
+    KeyQuorumsResource as PrivyKeyQuorumsResource,
+    AsyncKeyQuorumsResource as PrivyAsyncKeyQuorumsResource,
+)
+from .lib.policies import (
+    PoliciesResource as PrivyPoliciesResource,
+    AsyncPoliciesResource as PrivyAsyncPoliciesResource,
+)
 from .resources import users, policies, key_quorums, transactions
 from ._streaming import Stream as Stream, AsyncStream as AsyncStream
 from ._exceptions import PrivyAPIError, APIStatusError
@@ -65,7 +73,7 @@ class PrivyAPI(SyncAPIClient):
     users: PrivyUsersResource
     policies: policies.PoliciesResource
     transactions: transactions.TransactionsResource
-    key_quorums: key_quorums.KeyQuorumsResource
+    key_quorums: PrivyKeyQuorumsResource
     fiat: fiat.FiatResource
     with_raw_response: PrivyAPIWithRawResponse
     with_streaming_response: PrivyAPIWithStreamedResponse
@@ -168,16 +176,16 @@ class PrivyAPI(SyncAPIClient):
 
         self.wallets = PrivyWalletsResource(self)
         self.users = PrivyUsersResource(self)
-        self.policies = policies.PoliciesResource(self)
+        self.policies = PrivyPoliciesResource(self)
         self.transactions = transactions.TransactionsResource(self)
-        self.key_quorums = key_quorums.KeyQuorumsResource(self)
+        self.key_quorums = PrivyKeyQuorumsResource(self)
         self.fiat = fiat.FiatResource(self)
         self.with_raw_response = PrivyAPIWithRawResponse(self)
         self.with_streaming_response = PrivyAPIWithStreamedResponse(self)
 
     def update_authorization_key(self, authorization_key: str) -> None:
         if isinstance(self._client, PrivyHTTPClient):
-            self._client._authorization_key = authorization_key.replace("wallet-auth:", "")
+            self._client._authorization_key = authorization_key
 
     @property
     @override
@@ -297,7 +305,7 @@ class AsyncPrivyAPI(AsyncAPIClient):
     users: PrivyAsyncUsersResource
     policies: policies.AsyncPoliciesResource
     transactions: transactions.AsyncTransactionsResource
-    key_quorums: key_quorums.AsyncKeyQuorumsResource
+    key_quorums: PrivyAsyncKeyQuorumsResource
     fiat: fiat.AsyncFiatResource
     with_raw_response: AsyncPrivyAPIWithRawResponse
     with_streaming_response: AsyncPrivyAPIWithStreamedResponse
@@ -394,9 +402,9 @@ class AsyncPrivyAPI(AsyncAPIClient):
 
         self.wallets = PrivyAsyncWalletsResource(self)
         self.users = PrivyAsyncUsersResource(self)
-        self.policies = policies.AsyncPoliciesResource(self)
+        self.policies = PrivyAsyncPoliciesResource(self)
         self.transactions = transactions.AsyncTransactionsResource(self)
-        self.key_quorums = key_quorums.AsyncKeyQuorumsResource(self)
+        self.key_quorums = PrivyAsyncKeyQuorumsResource(self)
         self.fiat = fiat.AsyncFiatResource(self)
         self.with_raw_response = AsyncPrivyAPIWithRawResponse(self)
         self.with_streaming_response = AsyncPrivyAPIWithStreamedResponse(self)
