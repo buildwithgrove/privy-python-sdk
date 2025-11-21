@@ -9,6 +9,7 @@ Successfully implemented an `AuthorizationContext` abstraction for the Privy Pyt
 ### Core Components
 
 **1. AuthorizationContext (`privy/lib/authorization_context.py`)**
+
 - Main class for managing authorization contexts
 - Supports 4 signing methods:
   - Authorization private keys (✅ implemented)
@@ -18,11 +19,13 @@ Successfully implemented an `AuthorizationContext` abstraction for the Privy Pyt
 - 330 lines of fully documented, type-safe code
 
 **2. AuthorizationContextBuilder (`privy/lib/authorization_context.py`)**
+
 - Fluent builder pattern for ergonomic API
 - Methods: `add_authorization_private_key()`, `add_user_jwt()`, `set_custom_sign_function()`, `add_signature()`, `build()`
 - Chainable method calls
 
 **3. Type Definitions**
+
 - `CustomSignFunction`: Protocol for custom signing functions
 - `SignatureResult`: TypedDict for signature results
 - Full type hints throughout
@@ -42,8 +45,8 @@ AUTHORIZATION_CONTEXT_SUMMARY.md           # This file
 ### Test Coverage
 
 **11 tests, all passing:**
+
 - ✅ Builder with authorization keys
-- ✅ Wallet-auth prefix stripping
 - ✅ Custom signing function
 - ✅ Pre-computed signatures
 - ✅ User JWT (structure only, raises NotImplementedError)
@@ -132,10 +135,12 @@ signatures = auth_context.generate_signatures(...)
 ### Planned
 
 - User JWT-based signing
+
   - Requires API integration to exchange JWT for signing keys
   - Infrastructure ready, raises `NotImplementedError` with clear message
 
 - SDK method integration
+
   - Add `authorization_context` parameter to resource methods:
     - `wallets.transactions.create()`
     - `policies.update()`
@@ -147,22 +152,27 @@ signatures = auth_context.generate_signatures(...)
 ## Design Decisions
 
 ### 1. Builder Pattern
+
 - Chose fluent builder pattern for ergonomic API (matches Java SDK)
 - Alternative: Constructor with many optional parameters (rejected - less ergonomic)
 
 ### 2. Multiple Signing Methods in One Context
+
 - Allows combining different signing methods (keys + custom function + signatures)
 - Use case: Multi-party signing, backup keys, hybrid approaches
 
 ### 3. Protocol for CustomSignFunction
+
 - Used `Protocol` instead of `Callable` for better type safety
 - Provides clear interface documentation
 
 ### 4. NotImplementedError for User JWT
+
 - Clear error message with guidance on alternatives
 - Preserves API for future implementation
 
 ### 5. No SDK Integration Yet
+
 - Kept implementation focused on core authorization context
 - SDK integration is separate phase requiring broader changes
 
@@ -194,17 +204,20 @@ All tests pass. No regressions in existing test suite.
 ### User Documentation
 
 **Primary:** `docs/AUTHORIZATION_CONTEXT.md`
+
 - Quick start
 - API reference
 - Usage examples
 - Limitations
 
 **Examples:** `examples/authorization_context_examples.py`
+
 - 6 working examples
 - Builder pattern variations
 - All signing methods
 
 **Future API:** `examples/authorization_context_integration.py`
+
 - Intended SDK integration
 - Implementation roadmap
 
@@ -216,15 +229,15 @@ All tests pass. No regressions in existing test suite.
 
 ## Comparison with Java SDK
 
-| Feature | Java SDK | Python SDK | Status |
-|---------|----------|------------|--------|
-| Builder pattern | ✅ | ✅ | Implemented |
-| Authorization keys | ✅ | ✅ | Implemented |
-| User JWTs | ✅ | ⏳ | Planned |
-| Custom sign function | ✅ | ✅ | Implemented |
-| Pre-computed signatures | ✅ | ✅ | Implemented |
-| SDK method integration | ✅ | ⏳ | Planned |
-| Key quorum signing | ✅ | ⏳ | Planned |
+| Feature                 | Java SDK | Python SDK | Status      |
+| ----------------------- | -------- | ---------- | ----------- |
+| Builder pattern         | ✅       | ✅         | Implemented |
+| Authorization keys      | ✅       | ✅         | Implemented |
+| User JWTs               | ✅       | ⏳         | Planned     |
+| Custom sign function    | ✅       | ✅         | Implemented |
+| Pre-computed signatures | ✅       | ✅         | Implemented |
+| SDK method integration  | ✅       | ⏳         | Planned     |
+| Key quorum signing      | ✅       | ⏳         | Planned     |
 
 ## Integration with Existing Code
 
@@ -265,9 +278,11 @@ All tests pass. No regressions in existing test suite.
 ## Files Modified/Created
 
 ### Modified
+
 - `privy/lib/__init__.py` - Added exports
 
 ### Created
+
 - `privy/lib/authorization_context.py` - Core implementation
 - `tests/test_authorization_context.py` - Test suite
 - `examples/authorization_context_examples.py` - Working examples
@@ -289,10 +304,12 @@ Successfully implemented a production-ready `AuthorizationContext` abstraction f
 ✅ Is extensible for future features (user JWTs, key quorums)
 
 **Ready for:**
+
 - Immediate use via `generate_signatures()` method
 - SDK integration (Phase 2)
 - User JWT signing implementation (Phase 3)
 
 **Reference implementations:**
+
 - Java SDK: `AuthorizationContext` class
 - Python SDK: `privy/lib/authorization_context.py`

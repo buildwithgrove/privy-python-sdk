@@ -1,10 +1,13 @@
 import json
 import base64
+import logging
 from typing import Any, Dict, cast
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+
+logger = logging.getLogger(__name__)
 
 
 def canonicalize(obj: Any) -> str:
@@ -53,6 +56,9 @@ def get_authorization_signature(
 
     # Serialize the payload to JSON
     serialized_payload = canonicalize(payload)
+
+    # Log the serialized payload for debugging
+    logger.debug(f"Serialized authorization payload: {serialized_payload}")
 
     # Create ECDSA P-256 signing key from private key
     private_key_pem = f"-----BEGIN PRIVATE KEY-----\n{private_key}\n-----END PRIVATE KEY-----"

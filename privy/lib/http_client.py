@@ -75,6 +75,11 @@ class PrivyHTTPClient(httpx.Client):
                 if header_name.lower() != "privy-authorization-signature":
                     privy_headers[header_name.lower()] = header_value
 
+        # Log what we're about to sign
+        logger.debug(f"Generating signature for {request.method} {request.url}")
+        logger.debug(f"  Headers: {privy_headers}")
+        logger.debug(f"  Body keys: {list(body.keys()) if body else '(empty)'}")
+
         # Generate the signature
         signature = get_authorization_signature(
             url=str(request.url),
@@ -86,7 +91,7 @@ class PrivyHTTPClient(httpx.Client):
 
         # Add the signature to the request headers
         request.headers["privy-authorization-signature"] = signature
-        logger.debug(f"Added authorization signature to {request.url} (signature length: {len(signature)})")
+        logger.debug(f"Added authorization signature (length: {len(signature)})")
 
     @override
     def send(self, request: httpx.Request, **kwargs: Any) -> httpx.Response:
