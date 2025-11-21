@@ -42,12 +42,17 @@ class PrivyHTTPClient(httpx.Client):
         Args:
             request: The request to prepare
         """
-        # Skip if no authorization key or not a POST request
+        # Methods that require authorization signatures
+        SIGNED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+
+        # Skip if no authorization key
         if self._authorization_key is None:
-            if request.method == "POST":
-                logger.debug(f"Skipping authorization signature for {request.url} - no authorization key configured")
+            if request.method in SIGNED_METHODS:
+                logger.debug(f"Skipping authorization signature for {request.method} {request.url} - no authorization key configured")
             return
-        if request.method != "POST":
+
+        # Skip if not a mutation method
+        if request.method not in SIGNED_METHODS:
             return
 
         # Get the request body

@@ -161,7 +161,23 @@ class WalletsResource(BaseWalletsResource):
         if not wallet_id:
             raise ValueError(f"Expected a non-empty value for `wallet_id` but received {wallet_id!r}")
 
-        # Prepare request body for signature generation
+        # If no authorization_context provided, use parent method
+        # This allows the HTTP client's authorization key (set via update_authorization_key) to work
+        if authorization_context is None:
+            return super().update(
+                wallet_id=wallet_id,
+                additional_signers=additional_signers,
+                owner=owner,
+                owner_id=owner_id,
+                policy_ids=policy_ids,
+                privy_authorization_signature=privy_authorization_signature,
+                extra_headers=extra_headers,
+                extra_query=extra_query,
+                extra_body=extra_body,
+                timeout=timeout,
+            )
+
+        # If authorization_context provided, generate signatures
         request_body = {
             "additional_signers": additional_signers,
             "owner": owner,
@@ -493,7 +509,23 @@ class AsyncWalletsResource(BaseAsyncWalletsResource):
         if not wallet_id:
             raise ValueError(f"Expected a non-empty value for `wallet_id` but received {wallet_id!r}")
 
-        # Prepare request body for signature generation
+        # If no authorization_context provided, use parent method
+        # This allows the HTTP client's authorization key (set via update_authorization_key) to work
+        if authorization_context is None:
+            return await super().update(
+                wallet_id=wallet_id,
+                additional_signers=additional_signers,
+                owner=owner,
+                owner_id=owner_id,
+                policy_ids=policy_ids,
+                privy_authorization_signature=privy_authorization_signature,
+                extra_headers=extra_headers,
+                extra_query=extra_query,
+                extra_body=extra_body,
+                timeout=timeout,
+            )
+
+        # If authorization_context provided, generate signatures
         request_body = {
             "additional_signers": additional_signers,
             "owner": owner,
