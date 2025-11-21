@@ -1,10 +1,13 @@
 import json
+import logging
 from typing import Any, Dict, Optional, cast
 from typing_extensions import override
 
 import httpx
 
 from .authorization_signatures import get_authorization_signature
+
+logger = logging.getLogger(__name__)
 
 
 class PrivyHTTPClient(httpx.Client):
@@ -40,7 +43,11 @@ class PrivyHTTPClient(httpx.Client):
             request: The request to prepare
         """
         # Skip if no authorization key or not a POST request
-        if self._authorization_key is None or request.method != "POST":
+        if self._authorization_key is None:
+            if request.method == "POST":
+                logger.debug(f"Skipping authorization signature for {request.url} - no authorization key configured")
+            return
+        if request.method != "POST":
             return
 
         # Get the request body
@@ -70,6 +77,7 @@ class PrivyHTTPClient(httpx.Client):
 
         # Add the signature to the request headers
         request.headers["privy-authorization-signature"] = signature
+        logger.debug(f"Added authorization signature to {request.url} (signature length: {len(signature)})")
 
     @override
     def send(self, request: httpx.Request, **kwargs: Any) -> httpx.Response:
@@ -82,5 +90,41 @@ class PrivyHTTPClient(httpx.Client):
         Returns:
             The response from the server
         """
+        # Capture request body before sending (for logging on error)
+        request_body_for_logging = None
+        try:
+            if hasattr(request, 'content') and request.content:
+                request_body_for_logging = request.content.decode('utf-8')
+        except Exception:
+            pass
+
         self._prepare_request(request)
-        return super().send(request, **kwargs)
+        response = super().send(request, **kwargs)
+
+        # Log full request details on authorization errors (401)
+        if response.status_code == 401:
+            logger.error("=" * 80)
+            logger.error("PRIVY AUTHORIZATION ERROR - Full Request Details:")
+            logger.error("=" * 80)
+            logger.error(f"Method: {request.method}")
+            logger.error(f"URL: {request.url}")
+            logger.error(f"Headers:")
+            for key, value in request.headers.items():
+                # Mask sensitive values but show presence
+                if key.lower() in ("authorization", "privy-authorization-signature"):
+                    logger.error(f"  {key}: {'[PRESENT]' if value else '[MISSING]'} (length: {len(value) if value else 0})")
+                else:
+                    logger.error(f"  {key}: {value}")
+
+            # Log request body (if captured)
+            if request_body_for_logging:
+                logger.error(f"Body: {request_body_for_logging}")
+            else:
+                logger.error("Body: [NOT CAPTURED]")
+
+            # Log response
+            logger.error(f"Response Status: {response.status_code}")
+            logger.error(f"Response Body: {response.text}")
+            logger.error("=" * 80)
+
+        return response
