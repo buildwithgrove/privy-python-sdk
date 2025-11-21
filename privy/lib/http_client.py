@@ -66,12 +66,21 @@ class PrivyHTTPClient(httpx.Client):
         except Exception:
             body = {}
 
+        # Extract Privy-specific headers for signature payload
+        # According to Privy docs, include headers prefixed with 'privy-'
+        privy_headers = {"privy-app-id": self.app_id}
+        for header_name, header_value in request.headers.items():
+            if header_name.lower().startswith("privy-") and header_name.lower() != "privy-app-id":
+                # Don't include the authorization signature itself
+                if header_name.lower() != "privy-authorization-signature":
+                    privy_headers[header_name.lower()] = header_value
+
         # Generate the signature
         signature = get_authorization_signature(
             url=str(request.url),
             body=cast(Dict[str, Any], body),
             method=request.method,
-            app_id=self.app_id,
+            headers=privy_headers,
             private_key=self._authorization_key,
         )
 

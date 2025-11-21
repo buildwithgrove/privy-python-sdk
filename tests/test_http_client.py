@@ -47,7 +47,7 @@ class TestPrivyHTTPClient:
             mock_sig.assert_called_once()
             call_kwargs = mock_sig.call_args[1]
             assert call_kwargs["method"] == "POST"
-            assert call_kwargs["app_id"] == "test_app"
+            assert call_kwargs["headers"] == {"privy-app-id": "test_app"}
             assert call_kwargs["body"] == request_body
 
     def test_no_signature_without_authorization_key(self):
