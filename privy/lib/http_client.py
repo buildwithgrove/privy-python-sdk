@@ -44,8 +44,14 @@ class PrivyHTTPClient(httpx.Client):
             return
 
         # Get the request body
+        # IMPORTANT: Read the body content and then restore the stream
+        # to avoid consuming it before the actual request is sent
         try:
-            body_str = request.read().decode("utf-8")
+            body_bytes = request.read()
+            # Restore the stream so httpx can read it again when sending
+            request.stream = httpx.ByteStream(body_bytes)
+
+            body_str = body_bytes.decode("utf-8")
             if body_str:
                 body = json.loads(body_str)
             else:

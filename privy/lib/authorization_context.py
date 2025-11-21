@@ -30,7 +30,7 @@ class CustomSignFunction(Protocol):
     Custom signing functions allow you to implement signing logic in a separate service
     (e.g., KMS, HSM) or with custom business logic.
 
-    TODO: Add support for async custom sign functions
+    TODO_IMPROVE: Add support for async custom sign functions
     This would enable async KMS integrations but requires:
     1. New AsyncCustomSignFunction protocol
     2. Async-aware generate_signatures() method
@@ -174,7 +174,7 @@ class AuthorizationContext:
             all_signatures.append(signature)
 
         # 2. Generate signatures from user JWTs
-        # TODO: Implement user JWT-based signing
+        # TODO_IN_THIS_PR: Implement user JWT-based signing
         # This requires:
         # - Calling the API to exchange JWT for signing keys
         # - Using the returned keys to sign the request

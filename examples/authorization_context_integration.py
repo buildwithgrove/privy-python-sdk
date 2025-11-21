@@ -12,7 +12,7 @@ from privy import PrivyAPI
 from privy.lib import AuthorizationContext
 
 
-# TODO: Integrate authorization_context into remaining SDK resource methods
+# TODO_IN_THIS_PR: Integrate authorization_context into remaining SDK resource methods
 # This requires updating:
 # - privy/resources/wallets/transactions.py
 # - privy/resources/policies.py

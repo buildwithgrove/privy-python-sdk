@@ -22,7 +22,7 @@ def get_authorization_signature(
     app_id: str,
     private_key: str,
 ) -> str:
-    """Generate authorization signature for Privy API requests using ECDSA and hashlib.
+    """Generate authorization signature for Privy API requests using ECDSA P-256.
 
     Args:
         url: The URL of the request

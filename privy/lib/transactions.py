@@ -1,6 +1,6 @@
 """Extended Transactions resource with AuthorizationContext support.
 
-TODO: Implement authorization_context support for wallet transactions
+TODO_IN_THIS_PR: Implement authorization_context support for wallet transactions
 This should follow the same pattern as key_quorums.py:
 1. Extend wallets.transactions.create() method
 2. Add authorization_context parameter
