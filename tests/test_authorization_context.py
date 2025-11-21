@@ -21,39 +21,20 @@ class TestAuthorizationContext:
         assert context._authorization_private_keys[0] == "key1"
         assert context._authorization_private_keys[1] == "key2"
 
-    def test_builder_strips_wallet_auth_prefix(self):
-        """Test that wallet-auth: prefix is stripped from keys."""
-        context = (
-            AuthorizationContext.builder()
-            .add_authorization_private_key("wallet-auth:test_key")
-            .build()
-        )
-
-        assert context._authorization_private_keys[0] == "test_key"
-
     def test_builder_with_custom_sign_function(self):
         """Test building context with custom signing function."""
 
         def custom_signer(method, url, body, app_id):
             return {"signature": "custom_sig", "signer_public_key": None}
 
-        context = (
-            AuthorizationContext.builder()
-            .set_custom_sign_function(custom_signer)
-            .build()
-        )
+        context = AuthorizationContext.builder().set_custom_sign_function(custom_signer).build()
 
         assert context.has_signing_methods
         assert context._custom_sign_function is not None
 
     def test_builder_with_precomputed_signatures(self):
         """Test building context with pre-computed signatures."""
-        context = (
-            AuthorizationContext.builder()
-            .add_signature("sig1", "pubkey1")
-            .add_signature("sig2", None)
-            .build()
-        )
+        context = AuthorizationContext.builder().add_signature("sig1", "pubkey1").add_signature("sig2", None).build()
 
         assert context.has_signing_methods
         assert len(context._signatures) == 2
@@ -64,11 +45,7 @@ class TestAuthorizationContext:
 
     def test_builder_with_user_jwt(self):
         """Test building context with user JWT."""
-        context = (
-            AuthorizationContext.builder()
-            .add_user_jwt("jwt_token")
-            .build()
-        )
+        context = AuthorizationContext.builder().add_user_jwt("jwt_token").build()
 
         assert context.has_signing_methods
         assert len(context._user_jwts) == 1
@@ -86,11 +63,7 @@ class TestAuthorizationContext:
         def custom_signer(method, url, body, app_id):
             return {"signature": f"sig_{method}_{app_id}", "signer_public_key": None}
 
-        context = (
-            AuthorizationContext.builder()
-            .set_custom_sign_function(custom_signer)
-            .build()
-        )
+        context = AuthorizationContext.builder().set_custom_sign_function(custom_signer).build()
 
         signatures = context.generate_signatures(
             request_method="POST",
@@ -105,10 +78,7 @@ class TestAuthorizationContext:
     def test_generate_signatures_with_precomputed(self):
         """Test signature generation with pre-computed signatures."""
         context = (
-            AuthorizationContext.builder()
-            .add_signature("precomputed_sig1")
-            .add_signature("precomputed_sig2")
-            .build()
+            AuthorizationContext.builder().add_signature("precomputed_sig1").add_signature("precomputed_sig2").build()
         )
 
         signatures = context.generate_signatures(
@@ -124,11 +94,7 @@ class TestAuthorizationContext:
 
     def test_generate_signatures_with_user_jwt_not_implemented(self):
         """Test that user JWT signing raises NotImplementedError."""
-        context = (
-            AuthorizationContext.builder()
-            .add_user_jwt("jwt_token")
-            .build()
-        )
+        context = AuthorizationContext.builder().add_user_jwt("jwt_token").build()
 
         with pytest.raises(NotImplementedError, match="User JWT-based signing is not yet implemented"):
             context.generate_signatures(

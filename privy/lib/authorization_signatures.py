@@ -28,7 +28,7 @@ def get_authorization_signature(
         url: The URL of the request
         body: The request body
         app_id: The Privy app ID
-        private_key: The private key for authorization (without the 'wallet-auth:' prefix)
+        private_key: Base64-encoded private key
 
     Returns:
         The base64-encoded signature
@@ -46,8 +46,7 @@ def get_authorization_signature(
     serialized_payload = canonicalize(payload)
 
     # Create ECDSA P-256 signing key from private key
-    private_key_string = private_key.replace("wallet-auth:", "")
-    private_key_pem = f"-----BEGIN PRIVATE KEY-----\n{private_key_string}\n-----END PRIVATE KEY-----"
+    private_key_pem = f"-----BEGIN PRIVATE KEY-----\n{private_key}\n-----END PRIVATE KEY-----"
 
     # Load the private key from PEM format
     loaded_private_key = cast(

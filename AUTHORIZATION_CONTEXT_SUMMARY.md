@@ -123,11 +123,10 @@ signatures = auth_context.generate_signatures(...)
 - Custom signing function support
 - Pre-computed signature support
 - Type-safe protocols and TypedDicts
-- Comprehensive unit tests (11 tests)
+- Comprehensive unit tests (10 tests)
 - Working examples (6 examples)
 - Full documentation
 - Integration with existing `authorization_signatures.py`
-- Automatic prefix stripping (`wallet-auth:`)
 - Multi-key support
 
 ### Planned

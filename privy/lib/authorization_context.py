@@ -244,14 +244,12 @@ class AuthorizationContextBuilder:
         The private key will be used to compute ECDSA P-256 signatures over requests.
 
         Args:
-            private_key: Base64-encoded private key (with or without "wallet-auth:" prefix)
+            private_key: Base64-encoded private key
 
         Returns:
             Self for method chaining
         """
-        # Strip the prefix if present
-        clean_key = private_key.replace("wallet-auth:", "")
-        self._authorization_private_keys.append(clean_key)
+        self._authorization_private_keys.append(private_key)
         return self
 
     def add_user_jwt(self, jwt: str) -> Self:

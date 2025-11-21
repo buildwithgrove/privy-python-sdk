@@ -26,6 +26,7 @@ Server-side request signing for the Privy Python SDK.
 The `AuthorizationContext` provides an abstraction for automatic request signing in the Privy Python SDK, similar to the Java SDK's authorization context.
 
 **Key features:**
+
 - **Multiple signing methods**: Authorization keys, user JWTs, custom functions, pre-computed signatures
 - **Builder pattern**: Ergonomic API for constructing contexts
 - **Type-safe**: Full type hints and protocols
@@ -76,8 +77,8 @@ context = (
 ```
 
 **Features:**
+
 - Direct ECDSA P-256 signatures
-- Automatic prefix stripping (`wallet-auth:`)
 - Support for multiple keys
 
 ### 2. User JWTs
@@ -149,6 +150,7 @@ context = (
 The `AuthorizationContextBuilder` provides a fluent API:
 
 **Chained (recommended):**
+
 ```python
 context = (
     AuthorizationContext.builder()
@@ -159,6 +161,7 @@ context = (
 ```
 
 **Step-by-step:**
+
 ```python
 builder = AuthorizationContext.builder()
 builder.add_authorization_private_key("key1")
@@ -167,6 +170,7 @@ context = builder.build()
 ```
 
 **Conditional:**
+
 ```python
 builder = AuthorizationContext.builder()
 
@@ -186,11 +190,13 @@ context = builder.build()
 Main class for authorization contexts.
 
 **Methods:**
+
 - `builder() -> AuthorizationContextBuilder` - Create a new builder
 - `generate_signatures(request_method, request_url, request_body, app_id) -> List[str]` - Generate all signatures
 - `has_signing_methods: bool` - Check if any signing methods are configured
 
 **Example:**
+
 ```python
 context = AuthorizationContext.builder().build()
 signatures = context.generate_signatures("POST", "https://...", {}, "app_id")
@@ -201,6 +207,7 @@ signatures = context.generate_signatures("POST", "https://...", {}, "app_id")
 Builder for constructing `AuthorizationContext` instances.
 
 **Methods:**
+
 - `add_authorization_private_key(private_key: str) -> Self` - Add authorization key
 - `add_user_jwt(jwt: str) -> Self` - Add user JWT
 - `set_custom_sign_function(sign_function: CustomSignFunction) -> Self` - Set custom signer
@@ -212,6 +219,7 @@ Builder for constructing `AuthorizationContext` instances.
 Protocol for custom signing functions.
 
 **Signature:**
+
 ```python
 def custom_signer(
     request_method: str,
@@ -229,6 +237,7 @@ def custom_signer(
 TypedDict for signature results.
 
 **Fields:**
+
 - `signature: str` - Base64-encoded signature
 - `signer_public_key: Optional[str]` - Public key used for signing
 
@@ -237,11 +246,13 @@ TypedDict for signature results.
 See `examples/authorization_context_examples.py` for comprehensive examples:
 
 **Basic usage:**
+
 ```bash
 python examples/authorization_context_examples.py
 ```
 
 **Test suite:**
+
 ```bash
 pytest tests/test_authorization_context.py -v
 ```
@@ -266,10 +277,12 @@ pytest tests/test_authorization_context.py --cov=privy.lib.authorization_context
 **Current limitations:**
 
 1. **User JWT signing not implemented** - Raises `NotImplementedError`
+
    - Requires API integration to exchange JWTs for signing keys
    - Planned for future release
 
 2. **No SDK method integration** - Methods don't accept `authorization_context` parameter yet
+
    - Use `generate_signatures()` manually
    - SDK integration planned
 
@@ -297,6 +310,7 @@ signatures = context.generate_signatures(
 ---
 
 **Implementation reference:**
+
 - Core implementation: `privy/lib/authorization_context.py`
 - Tests: `tests/test_authorization_context.py`
 - Examples: `examples/authorization_context_examples.py`

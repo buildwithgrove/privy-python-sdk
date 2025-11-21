@@ -31,8 +31,7 @@ class PrivyHTTPClient(httpx.Client):
         self._authorization_key = None
 
         if authorization_key is not None:
-            # Remove the 'wallet-auth:' prefix
-            self._authorization_key = authorization_key.replace("wallet-auth:", "")
+            self._authorization_key = authorization_key
 
     def _prepare_request(self, request: httpx.Request) -> None:
         """Add authorization signature to the request if authorization_key is set.

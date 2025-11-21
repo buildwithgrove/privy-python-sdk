@@ -181,7 +181,7 @@ class PrivyAPI(SyncAPIClient):
 
     def update_authorization_key(self, authorization_key: str) -> None:
         if isinstance(self._client, PrivyHTTPClient):
-            self._client._authorization_key = authorization_key.replace("wallet-auth:", "")
+            self._client._authorization_key = authorization_key
 
     @property
     @override
